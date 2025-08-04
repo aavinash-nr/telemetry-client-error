@@ -19,8 +19,8 @@ import (
 // STEP 1: CONFIGURE YOUR TEST
 // =================================================================
 const (
-	licenseKey         = "api-key"                 // <--- PASTE YOUR KEY HERE
-	endpoint           = "http://localhost:8083"   // Use 8080 for the SLOW server
+	licenseKey         = "your-prod-ingest-key"                 // <--- PASTE YOUR KEY HERE
+	endpoint           = "https://staging-log-api.newrelic.com/log/v1" // Use 8080 for the SLOW server
 	concurrentRequests = 4000                      // <-- SET HOW MANY CONCURRENT REQUESTS
 )
 // =================================================================
@@ -28,7 +28,7 @@ const (
 // --- Test Configuration ---
 const (
 	SendTimeoutRetryBase  = 200 * time.Millisecond
-	SendTimeoutMaxRetries = 5
+	SendTimeoutMaxRetries = 10
 	SendTimeoutMaxBackOff = 3 * time.Second
 	httpClientTimeout     = 2400 * time.Millisecond
 )
@@ -136,7 +136,7 @@ func NewClient(key, endpoint string, logger *log.Logger, requestID string, mutex
 		httpClient: httpClient,
 		licenseKey: key,
 		endpoint:   endpoint,
-		timeout:    20 * time.Second,
+		timeout:    10 * time.Second,
 		logger:     logger,
 		requestID:  requestID,
 	}
@@ -202,6 +202,7 @@ func (c *loggerClient) attemptSend(ctx context.Context, currentPayloadBytes []by
 		select {
 		case <-ctx.Done():
 			dataChan <- AttemptData{Error: ctx.Err()}
+			c.Logf("[ATTEMPT][%s] attemptSend: thread was quit by context timeout", c.requestID)
 			return
 		default:
 		}
